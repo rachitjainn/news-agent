@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling>=1.24.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "news-agent"
+version = "0.1.0"
+description = "24/7 VPS-ready news monitoring and alerting agent"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "news-agent" }]
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.34.0",
+  "pydantic>=2.10.0",
+  "pydantic-settings>=2.7.0",
+  "sqlalchemy>=2.0.36",
+  "alembic>=1.14.0",
+  "psycopg[binary]>=3.2.3",
+  "redis>=5.2.1",
+  "rq>=2.0.0",
+  "apscheduler>=3.10.4",
+  "httpx>=0.28.1",
+  "feedparser>=6.0.11",
+  "beautifulsoup4>=4.12.3",
+  "lxml>=5.3.0",
+  "python-dateutil>=2.9.0.post0",
+  "email-validator>=2.2.0",
+  "structlog>=24.4.0",
+  "openai>=1.59.0",
+  "prometheus-client>=0.21.1"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.4",
+  "pytest-cov>=6.0.0",
+  "pytest-mock>=3.14.0",
+  "ruff>=0.8.6"
+]
+
+[project.scripts]
+news-agent-api = "news_agent.main:run"
+news-agent-worker = "news_agent.worker:main"
+news-agent-scheduler = "news_agent.scheduler:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/news_agent"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
