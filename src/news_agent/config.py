@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     max_fetch_articles: int = Field(default=50, alias="MAX_FETCH_ARTICLES")
 
     gnews_api_key: str = Field(default="", alias="GNEWS_API_KEY")
+    github_token: str = Field(default="", alias="GITHUB_TOKEN")
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     openai_model: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL")
     llm_top_candidates: int = Field(default=10, alias="LLM_TOP_CANDIDATES")

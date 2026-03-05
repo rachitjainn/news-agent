@@ -99,3 +99,27 @@ def test_healthz(client):
     body = response.json()
     assert body["api"] == "ok"
     assert body["db"] == "up"
+
+
+def test_list_subscriptions(client):
+    payload = {
+        "email": "list@example.com",
+        "interests": "AI infra",
+        "regions": ["us"],
+        "languages": ["en"],
+        "alert_frequency": 10,
+    }
+    create_resp = client.post("/v1/subscriptions", json=payload)
+    assert create_resp.status_code == 201
+
+    list_resp = client.get("/v1/subscriptions")
+    assert list_resp.status_code == 200
+    items = list_resp.json()
+    assert len(items) >= 1
+    assert any(item["email"] == "list@example.com" for item in items)
+
+
+def test_dashboard_route(client):
+    response = client.get("/dashboard")
+    assert response.status_code == 200
+    assert "News Agent Dashboard" in response.text

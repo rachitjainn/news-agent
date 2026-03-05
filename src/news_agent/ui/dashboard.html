@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>News Agent Dashboard</title>
+    <style>
+      :root {
+        --bg-a: #f6f8f9;
+        --bg-b: #e8eef0;
+        --panel: #ffffff;
+        --ink: #1f2a37;
+        --muted: #5a6b77;
+        --line: #d7e0e6;
+        --accent: #008b8b;
+        --accent-2: #f97316;
+        --danger: #dc2626;
+        --ok: #16a34a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at 0 0, #fff 0%, var(--bg-a) 40%, var(--bg-b) 100%);
+      }
+
+      .page {
+        max-width: 1160px;
+        margin: 28px auto;
+        padding: 0 16px 32px;
+      }
+
+      .hero {
+        background: linear-gradient(120deg, #ffffff 0%, #f2faf8 40%, #fff7ed 100%);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        padding: 20px;
+        box-shadow: 0 12px 30px rgba(2, 132, 199, 0.08);
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: clamp(1.35rem, 1.9vw, 1.95rem);
+      }
+
+      .hero p {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .grid {
+        margin-top: 16px;
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+      }
+
+      .panel {
+        grid-column: span 12;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+      }
+
+      @media (min-width: 900px) {
+        .panel.form {
+          grid-column: span 4;
+        }
+
+        .panel.subs {
+          grid-column: span 8;
+        }
+
+        .panel.history {
+          grid-column: span 12;
+        }
+      }
+
+      .panel h2 {
+        margin: 0 0 12px;
+        font-size: 1.05rem;
+      }
+
+      .health {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .pill {
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 12px;
+        border: 1px solid var(--line);
+        background: #f9fbfc;
+      }
+
+      .pill.up,
+      .pill.ok {
+        border-color: #86efac;
+        background: #f0fdf4;
+      }
+
+      .pill.down {
+        border-color: #fca5a5;
+        background: #fef2f2;
+      }
+
+      label {
+        display: block;
+        margin-top: 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        margin-top: 6px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        font: inherit;
+      }
+
+      textarea {
+        min-height: 92px;
+        resize: vertical;
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: linear-gradient(120deg, var(--accent), #0ea5a5);
+        color: #fff;
+      }
+
+      .btn-secondary {
+        background: #eff6ff;
+        color: #1d4ed8;
+      }
+
+      .btn-danger {
+        background: #fef2f2;
+        color: var(--danger);
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        padding: 10px 8px;
+        vertical-align: top;
+        font-size: 13px;
+      }
+
+      .mini {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      #message {
+        margin-top: 8px;
+        min-height: 18px;
+      }
+
+      .ok {
+        color: var(--ok);
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .mono {
+        font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <h1>News Agent Dashboard</h1>
+        <p>Manage subscriptions, trigger runs, and inspect alert history locally.</p>
+        <div class="health" id="health"></div>
+      </section>
+
+      <section class="grid">
+        <article class="panel form">
+          <h2>Create / Update Subscription</h2>
+          <form id="subscription-form">
+            <label>
+              Email
+              <input id="email" type="email" required placeholder="you@example.com" />
+            </label>
+            <label>
+              Interests
+              <textarea id="interests" required placeholder="AI, dev tools, open source"></textarea>
+            </label>
+            <label>
+              Regions (comma-separated)
+              <input id="regions" type="text" placeholder="us,in" />
+            </label>
+            <label>
+              Languages (comma-separated)
+              <input id="languages" type="text" value="en" />
+            </label>
+            <label>
+              Alert Frequency (minutes)
+              <input id="alert_frequency" type="number" min="1" max="1440" value="15" />
+            </label>
+            <div class="actions" style="margin-top: 12px">
+              <button class="btn btn-primary" type="submit">Save Subscription</button>
+              <button class="btn btn-secondary" id="refresh-btn" type="button">Refresh Data</button>
+            </div>
+            <div id="message" class="mini"></div>
+          </form>
+        </article>
+
+        <article class="panel subs">
+          <h2>Subscriptions</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Interests</th>
+                <th>Frequency</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="subs-body">
+              <tr>
+                <td colspan="5" class="mini">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="panel history">
+          <h2>Alert History</h2>
+          <div class="mini" id="history-meta">Pick a subscription to load history.</div>
+          <table>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Status</th>
+                <th>Channel</th>
+                <th>Run ID</th>
+                <th>Provider</th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <tr>
+                <td colspan="5" class="mini">No data yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const healthEl = document.getElementById("health");
+      const subsBody = document.getElementById("subs-body");
+      const historyBody = document.getElementById("history-body");
+      const historyMeta = document.getElementById("history-meta");
+      const form = document.getElementById("subscription-form");
+      const msg = document.getElementById("message");
+      const refreshBtn = document.getElementById("refresh-btn");
+
+      const asList = (value) =>
+        value
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+      const setMessage = (text, isError = false) => {
+        msg.textContent = text;
+        msg.className = isError ? "error" : "ok";
+      };
+
+      const fetchJson = async (url, options = {}) => {
+        const res = await fetch(url, options);
+        if (!res.ok) {
+          let detail = res.statusText;
+          try {
+            const payload = await res.json();
+            detail = payload.detail || JSON.stringify(payload);
+          } catch (_) {}
+          throw new Error(detail);
+        }
+        return res.json();
+      };
+
+      const renderHealth = async () => {
+        try {
+          const health = await fetchJson("/healthz");
+          healthEl.innerHTML = Object.entries(health)
+            .map(([k, v]) => `<span class="pill ${v}">${k}: ${v}</span>`)
+            .join("");
+        } catch (err) {
+          healthEl.innerHTML = `<span class="pill down">health: ${err.message}</span>`;
+        }
+      };
+
+      const loadHistory = async (subscriptionId) => {
+        historyMeta.textContent = `History for ${subscriptionId}`;
+        try {
+          const data = await fetchJson(`/v1/alerts/history?subscription_id=${subscriptionId}&page=1&page_size=20`);
+          if (!data.items.length) {
+            historyBody.innerHTML = `<tr><td colspan="5" class="mini">No alert events.</td></tr>`;
+            return;
+          }
+          historyBody.innerHTML = data.items
+            .map(
+              (item) => `
+                <tr>
+                  <td class="mono">${item.sent_at || item.created_at}</td>
+                  <td>${item.status}</td>
+                  <td>${item.channel}</td>
+                  <td class="mono">${item.run_id || "-"}</td>
+                  <td>${item.provider_id || "-"}</td>
+                </tr>
+              `,
+            )
+            .join("");
+        } catch (err) {
+          historyBody.innerHTML = `<tr><td colspan="5" class="error">${err.message}</td></tr>`;
+        }
+      };
+
+      const loadSubscriptions = async () => {
+        try {
+          const subscriptions = await fetchJson("/v1/subscriptions");
+          if (!subscriptions.length) {
+            subsBody.innerHTML = `<tr><td colspan="5" class="mini">No subscriptions yet.</td></tr>`;
+            return;
+          }
+          subsBody.innerHTML = subscriptions
+            .map(
+              (sub) => `
+                <tr>
+                  <td>${sub.email}<div class="mini mono">${sub.id}</div></td>
+                  <td>${sub.interests}</td>
+                  <td>${sub.alert_frequency}m</td>
+                  <td>${sub.is_active ? "active" : "inactive"}</td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn btn-secondary" data-action="run" data-id="${sub.id}">Run now</button>
+                      <button class="btn btn-secondary" data-action="history" data-id="${sub.id}">History</button>
+                      <button class="btn btn-danger" data-action="delete" data-id="${sub.id}">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              `,
+            )
+            .join("");
+        } catch (err) {
+          subsBody.innerHTML = `<tr><td colspan="5" class="error">${err.message}</td></tr>`;
+        }
+      };
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setMessage("Saving subscription...");
+
+        try {
+          const payload = {
+            email: document.getElementById("email").value.trim(),
+            interests: document.getElementById("interests").value.trim(),
+            regions: asList(document.getElementById("regions").value),
+            languages: asList(document.getElementById("languages").value),
+            alert_frequency: Number(document.getElementById("alert_frequency").value),
+          };
+          const result = await fetchJson("/v1/subscriptions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          setMessage(`Saved (${result.status}) with id ${result.subscription_id}`);
+          await loadSubscriptions();
+        } catch (err) {
+          setMessage(err.message, true);
+        }
+      });
+
+      refreshBtn.addEventListener("click", async () => {
+        await Promise.all([renderHealth(), loadSubscriptions()]);
+      });
+
+      subsBody.addEventListener("click", async (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLButtonElement)) {
+          return;
+        }
+
+        const action = target.dataset.action;
+        const id = target.dataset.id;
+        if (!action || !id) {
+          return;
+        }
+
+        try {
+          if (action === "run") {
+            const result = await fetchJson(`/v1/run-now/${id}`, { method: "POST" });
+            setMessage(`Run queued: ${result.run_id}`);
+          }
+
+          if (action === "delete") {
+            await fetchJson(`/v1/subscriptions/${id}`, { method: "DELETE" });
+            setMessage(`Deleted subscription ${id}`);
+            await loadSubscriptions();
+            return;
+          }
+
+          if (action === "history") {
+            await loadHistory(id);
+          }
+        } catch (err) {
+          setMessage(err.message, true);
+        }
+      });
+
+      (async () => {
+        await Promise.all([renderHealth(), loadSubscriptions()]);
+      })();
+    </script>
+  </body>
+</html>

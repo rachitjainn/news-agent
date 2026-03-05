@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+from news_agent.config import get_settings
 from news_agent.schemas import RawArticle
 from news_agent.sources.base import SourceAdapter
 
@@ -10,7 +11,12 @@ class GitHubSource(SourceAdapter):
     name = "github"
 
     def fetch(self, since_ts: datetime, query_profile: dict[str, object]) -> list[RawArticle]:
+        settings = get_settings()
         created_since = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
+        headers: dict[str, str] = {}
+        if settings.github_token:
+            headers["Authorization"] = f"Bearer {settings.github_token}"
+            headers["Accept"] = "application/vnd.github+json"
         payload = self._request_json(
             "https://api.github.com/search/repositories",
             params={
@@ -19,6 +25,7 @@ class GitHubSource(SourceAdapter):
                 "order": "desc",
                 "per_page": 30,
             },
+            headers=headers,
         )
 
         items = payload.get("items", []) if isinstance(payload, dict) else []

@@ -11,6 +11,7 @@ from news_agent.api.routes import router
 from news_agent.config import get_settings
 from news_agent.db import configure_engine, init_db
 from news_agent.logging import configure_logging
+from news_agent.ui.routes import router as ui_router
 
 def create_app() -> FastAPI:
     settings = get_settings()
@@ -25,6 +26,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.include_router(router)
+    app.include_router(ui_router)
 
     @app.get("/metrics")
     def metrics() -> Response:

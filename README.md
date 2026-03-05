@@ -1,103 +1,165 @@
-# News Agent (Python-First)
+# News Agent (Local-First Runbook)
 
-24/7 VPS-ready news monitoring service with:
-- FastAPI API for subscriptions and control endpoints
-- Source ingestion from RSS, Hacker News, GitHub, and optional GNews
-- Normalization + deduplication
-- Hybrid ranking (rules + optional OpenAI scoring)
-- Instant email alerts with debounce + idempotency
-- Redis queue (RQ) worker + APScheduler poller
-- PostgreSQL persistence + Alembic migrations
-- Prometheus metrics and health checks
+This repository contains a Python news agent with:
+- FastAPI API
+- RQ worker
+- APScheduler poller
+- PostgreSQL + Redis
+- Source ingestion (RSS, Hacker News, GitHub, optional GNews)
+- Dedup, ranking, and email alerting
 
-## Project Layout
+## Local Prerequisites
 
-- `src/news_agent/main.py`: FastAPI app
-- `src/news_agent/api/routes.py`: API endpoints
-- `src/news_agent/models.py`: SQLAlchemy models
-- `src/news_agent/services/pipeline.py`: orchestrator
-- `src/news_agent/services/normalize.py`: canonicalization/dedup helpers
-- `src/news_agent/services/ranking.py`: rules + LLM ranking
-- `src/news_agent/services/alerting.py`: email dispatch + debounce
-- `src/news_agent/sources/`: source adapters
-- `src/news_agent/jobs.py`: queue jobs
-- `src/news_agent/worker.py`: RQ worker entrypoint
-- `src/news_agent/scheduler.py`: APScheduler entrypoint
-- `alembic/`: DB migration setup
+- Python 3.12+
+- Docker + Docker Compose
+- `make` (optional, but recommended)
 
-## API Endpoints
+## Run Everything Locally (Recommended)
 
-- `POST /v1/subscriptions`
-- `PATCH /v1/subscriptions/{id}`
-- `DELETE /v1/subscriptions/{id}`
-- `POST /v1/run-now/{subscription_id}`
-- `GET /v1/alerts/history?subscription_id=...`
-- `GET /healthz`
-- `GET /metrics`
-
-## Quickstart
-
-1. Copy env:
+1. Bootstrap dependencies and DB schema:
 
 ```bash
-cp .env.example .env
+make bootstrap
 ```
 
-2. Install:
+2. Start API + worker + scheduler together:
 
 ```bash
-python3 -m pip install -e '.[dev]'
+make run-local
 ```
 
-3. Start dependencies:
+3. Open the API:
+
+- `http://localhost:8000/healthz`
+- `http://localhost:8000/metrics`
+- `http://localhost:8000/dashboard`
+
+4. Stop all app processes with `Ctrl+C` in the `make run-local` terminal.
+
+## What `make bootstrap` Does
+
+- Creates `.env` from `.env.example` if missing
+- Installs project in editable mode with dev dependencies
+- Starts local Postgres and Redis via Docker
+- Waits until Postgres accepts connections
+- Runs Alembic migrations
+
+## Manual Run (If You Prefer Separate Terminals)
+
+1. Setup + infra:
 
 ```bash
-docker compose up -d postgres redis
+make bootstrap
 ```
 
-4. Run migrations:
+2. Terminal A:
 
 ```bash
-alembic upgrade head
+make api
 ```
 
-5. Start API:
+3. Terminal B:
 
 ```bash
-news-agent-api
+make worker
 ```
 
-6. Start worker (new terminal):
+4. Terminal C:
 
 ```bash
-news-agent-worker
+make scheduler
 ```
 
-7. Start scheduler (new terminal):
+## Local Logs
+
+When using `make run-local`, logs are written to:
+- `.local/api.log`
+- `.local/worker.log`
+- `.local/scheduler.log`
+
+## Quick API Smoke Test
+
+Create a subscription:
 
 ```bash
-news-agent-scheduler
+curl -X POST http://localhost:8000/v1/subscriptions \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "you@example.com",
+    "interests": "AI, developer tools, open source",
+    "regions": ["us"],
+    "languages": ["en"],
+    "alert_frequency": 15
+  }'
 ```
 
-## Docker Compose (Full Stack)
+Trigger immediate run:
 
 ```bash
-docker compose up --build
+curl -X POST http://localhost:8000/v1/run-now/<subscription_id>
 ```
 
-Services:
-- API on `http://localhost:8000`
-- Postgres on `localhost:5432`
-- Redis on `localhost:6379`
-
-## Testing
+Read alert history:
 
 ```bash
-pytest -q
+curl "http://localhost:8000/v1/alerts/history?subscription_id=<subscription_id>"
 ```
 
-## Notes
+## Environment Notes
 
-- If `SMTP_HOST` is empty, email delivery runs in dry-run mode and logs alert sends without external SMTP.
-- Set `OPENAI_API_KEY` and `ENABLE_LLM=true` to enable LLM scoring for top candidates.
-- `healthz` worker/scheduler status comes from Redis heartbeats written by worker/scheduler processes.
+- If `SMTP_HOST` is empty, sends run in dry-run mode (no real email dispatch).
+- Set `OPENAI_API_KEY` and keep `ENABLE_LLM=true` to enable LLM scoring.
+- Add `GNEWS_API_KEY` to enable the GNews adapter.
+
+## API Keys / Secrets You Should Set
+
+Required for real email delivery:
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `FROM_EMAIL`
+
+Strongly recommended:
+- `OPENAI_API_KEY` (for better ranking quality)
+- `GITHUB_TOKEN` (avoids strict anonymous GitHub rate limits)
+
+Optional:
+- `GNEWS_API_KEY` (adds one extra news source)
+
+No key needed:
+- RSS feeds
+- Hacker News source
+
+## Useful Commands
+
+```bash
+make test
+make lint
+make deps-down
+```
+
+## Troubleshooting
+
+- If DB migration fails, inspect infra status:
+
+```bash
+docker compose ps
+docker compose logs postgres --tail 100
+```
+
+- Re-run only migration step:
+
+```bash
+make migrate
+```
+
+## Core Files
+
+- `src/news_agent/main.py` (FastAPI app)
+- `src/news_agent/api/routes.py` (REST endpoints)
+- `src/news_agent/services/pipeline.py` (orchestration)
+- `src/news_agent/worker.py` (RQ worker)
+- `src/news_agent/scheduler.py` (poll scheduler)
+- `docker-compose.yml` (local Postgres/Redis)
+- `scripts/run_local.sh` (run all app processes locally)

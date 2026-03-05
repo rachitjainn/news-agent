@@ -72,6 +72,14 @@ def list_active_subscriptions(db: Session) -> list[Subscription]:
     return list(result.scalars().all())
 
 
+def list_subscriptions(db: Session, active_only: bool = False) -> list[Subscription]:
+    query = select(Subscription)
+    if active_only:
+        query = query.where(Subscription.is_active.is_(True))
+    result = db.execute(query.order_by(Subscription.created_at.desc()))
+    return list(result.scalars().all())
+
+
 def mark_polled(db: Session, subscription: Subscription) -> None:
     subscription.last_polled_at = datetime.now(timezone.utc)
     db.commit()

@@ -13,6 +13,7 @@ from news_agent.repositories.alerts import list_alert_history
 from news_agent.repositories.subscriptions import (
     delete_subscription,
     get_subscription_by_id,
+    list_subscriptions,
     update_subscription,
     upsert_subscription,
 )
@@ -28,6 +29,15 @@ from news_agent.schemas import (
 )
 
 router = APIRouter()
+
+
+@router.get("/v1/subscriptions", response_model=list[SubscriptionResponse])
+def get_subscriptions(
+    active_only: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    subscriptions = list_subscriptions(db, active_only=active_only)
+    return [SubscriptionResponse.model_validate(item) for item in subscriptions]
 
 
 @router.post(

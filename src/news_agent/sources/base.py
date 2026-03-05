@@ -41,6 +41,7 @@ class SourceAdapter(ABC):
         self,
         url: str,
         params: dict[str, object] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> dict[str, object] | list[object]:
         if self._circuit_is_open():
             logger.warning("source_skipped_circuit_open", source=self.name)
@@ -50,7 +51,7 @@ class SourceAdapter(ABC):
         for attempt in range(self.max_retries + 1):
             try:
                 with httpx.Client(timeout=self.timeout_seconds) as client:
-                    response = client.get(url, params=params)
+                    response = client.get(url, params=params, headers=headers)
                     response.raise_for_status()
                     payload = response.json()
                 self._record_success()
